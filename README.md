@@ -18,17 +18,6 @@ A collection of free, open-source plugins for **grandMA3** lighting consoles.
 
 ---
 
-## Installation
-
-1. **Download** the `.xml` file of the plugin you want
-2. In grandMA3: **Menu → Import/Export → Import**
-3. Select the downloaded `.xml` file
-4. The plugin will appear in your **Plugin Pool**
-
-> **Note:** The `.lua` file is the readable source code. The `.xml` is the file you import into grandMA3.
-
----
-
 ## Requirements
 
 - grandMA3 **2.3.2.0** or newer (earlier versions may work but are untested)
