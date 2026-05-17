@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com) — versions follow `MAJO
 
 ---
 
+## [3.0.1] — 2026-05-17
+
+### Fixed
+- Crash on open when a fixture has no geometry definition (`geometrydirect` nil) — affected simple dimmers and similar fixture types
+
+---
+
 ## [3.0.0] — 2026-05-17
 
 ### Added

@@ -24,7 +24,7 @@
   License:  t-60 Plugin License (Non-Commercial) — see bottom of file
 ---------------------------------------------------------------------------]]
 
-local pluginVersion = "3.0.0"
+local pluginVersion = "3.0.1"
 
 -- GMA3 passes these four values to every plugin on load.
 -- pluginName:    the name as stored in the showfile
@@ -69,8 +69,10 @@ end
 
 local function countFixtureChannels(fix)
     local real, virtual = 0, 0
-    local dmxChannels   = fix["modedirect"]["dmxchannels"]:Children()
-    local modeGeoms     = fix["modedirect"]["geometrydirect"]:Children()
+    local dmxChannels = fix["modedirect"]["dmxchannels"]:Children()
+    -- geometrydirect can be nil for fixtures without geometry (e.g. simple dimmers)
+    local geomObj   = fix["modedirect"]["geometrydirect"]
+    local modeGeoms = geomObj and geomObj:Children() or {}
     for _, ch in ipairs(dmxChannels) do
         local instances = 0
         if fix.count ~= 0 then
