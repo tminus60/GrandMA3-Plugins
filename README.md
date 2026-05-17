@@ -16,6 +16,12 @@ A collection of free, open-source plugins for **grandMA3** lighting consoles.
 |--------|-------------|---------|------|
 | [Parameter Calculator](Parameter-Calculator/) | Counts real and virtual DMX parameters of all fixtures in the show. Calculates how many Parameter Units (PU M/L/XL) you need to cover the show. | 3.0.0 | 2.3.2.0 |
 
+### Network
+
+| Plugin | Description | Version | GMA3 |
+|--------|-------------|---------|------|
+| [Network Ping](Network/Ping/) | Ping a single host or sweep an entire IP range to find all active devices. Sweep runs all pings in parallel — a full /24 takes ~3 seconds. | 2.2.0 | 2.3.2.0 |
+
 ---
 
 ## Requirements
