@@ -24,9 +24,18 @@ Counts real and virtual DMX parameters of all fixtures in the show. Calculates h
 #### [Network Ping](Network/Ping/) `v2.2.0`
 Ping a single host or sweep an entire IP range to find all active devices. Sweep runs all pings in parallel — a full /24 takes ~3 seconds.
 
-<img src="Network/Ping/screenshots/launcher.png" width="400">
-<img src="Network/Ping/screenshots/single-ping.png" width="400">
-<img src="Network/Ping/screenshots/sweep.png" width="400">
+<table>
+  <tr>
+    <td><img src="Network/Ping/screenshots/launcher.png" width="280"></td>
+    <td><img src="Network/Ping/screenshots/single-ping.png" width="280"></td>
+    <td><img src="Network/Ping/screenshots/sweep.png" width="280"></td>
+  </tr>
+  <tr>
+    <td align="center">Launcher</td>
+    <td align="center">Single Ping</td>
+    <td align="center">Ping Sweep</td>
+  </tr>
+</table>
 
 ---
 
