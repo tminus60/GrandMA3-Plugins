@@ -10,7 +10,6 @@ Locks the grandMA3 show with a PIN code. Uses GMA3's native blocking TextInput m
 
 | Feature | Description |
 |---|---|
-| **Blocking lock** | GMA3's native modal dialog — no background interaction possible, cannot be bypassed |
 | **3-attempt limit** | After 3 wrong PINs the current show is saved and a new empty show is loaded |
 | **Configurable PIN** | Set any PIN, stored persistently in GlobalVars |
 | **Configurable message** | Custom lock screen message shown during each PIN prompt |
