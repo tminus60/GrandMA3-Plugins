@@ -31,7 +31,7 @@ local _T60_PLUGIN_ID = "pong"
 -- ─────────────────────────────────────────────────────────────
 
 -- ── t-60 Update Checker ── 1 Zeile ändern, Rest copy-paste ──
-local _T60_UPDATE_URL = "https://raw.githubusercontent.com/tminus60/GrandMA3-Plugins/master/Pong/version.txt"
+local _T60_UPDATE_URL = "https://raw.githubusercontent.com/tminus60/GrandMA3-Plugins/master/Games/Pong/version.txt"
 -- ─────────────────────────────────────────────────────────────
 
 local pluginName  = select(1, ...)
