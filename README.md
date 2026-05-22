@@ -10,19 +10,36 @@ A collection of free, open-source plugins for **grandMA3** lighting consoles.
 
 ## Available Plugins
 
-### Parameter
+| Category | Plugin | Version |
+|---|---|---|
+| Parameter | [Parameter Calculator](Parameter-Calculator/) | `v3.0.1` |
+| Network | [Network Ping](Network/Ping/) | `v2.2.0` |
+| Games | [Pong](Pong/) | `v1.3.0` |
 
-#### [Parameter Calculator](Parameter-Calculator/) `v3.0.0`
+---
+
+## Parameter
+
+### [Parameter Calculator](Parameter-Calculator/) `v3.0.1`
+
 Counts real and virtual DMX parameters of all fixtures in the show. Calculates how many Parameter Units (PU M/L/XL) you need to cover the show.
 
 <img src="Parameter-Calculator/screenshots/overview.png" width="600">
 
 ---
 
-### Network
+## Network
 
-#### [Network Ping](Network/Ping/) `v2.2.0`
-Ping a single host or sweep an entire IP range to find all active devices. Sweep runs all pings in parallel — a full /24 takes ~3 seconds.
+### [Network Tools](Network/Ping/) `v3.0.0`
+
+A suite of network diagnostic tools for grandMA3.
+
+| Tool | Description |
+|---|---|
+| **Single Ping** | Ping any host or IP address |
+| **Ping Sweep** | Scan a full IP range in parallel — a /24 in ~3 seconds |
+| **Favorites** | Save hosts for quick one-click pinging, stored per user |
+| **Ping Guard** | Continuously monitor a list of IPs, alert when a host goes down |
 
 <table>
   <tr>
@@ -34,6 +51,25 @@ Ping a single host or sweep an entire IP range to find all active devices. Sweep
     <td align="center">Launcher</td>
     <td align="center">Single Ping</td>
     <td align="center">Ping Sweep</td>
+  </tr>
+</table>
+
+---
+
+## Games
+
+### [Pong](Pong/) `v1.3.0`
+
+A fully-featured Pong game for grandMA3. Control your paddle with a playback master fader. Supports CPU and 2-Player mode, configurable ball speed, paddle height, obstacles, and smooth pixel-precise rendering.
+
+<table>
+  <tr>
+    <td><img src="Pong/screenshots/game.png" width="400"></td>
+    <td><img src="Pong/screenshots/settings.png" width="240"></td>
+  </tr>
+  <tr>
+    <td align="center">Game</td>
+    <td align="center">Settings</td>
   </tr>
 </table>
 
