@@ -18,13 +18,22 @@
   grandMA3 Parameter Units (PU M/L/XL) are needed to cover the show.
 
   Author:   t-60
-  Version:  3.0.0
+  Version:  3.0.1
   GMA3:     tested on 2.3.2.0
   GitHub:   https://github.com/tminus60/GrandMA3-Plugins
   License:  t-60 Plugin License (Non-Commercial) — see bottom of file
 ---------------------------------------------------------------------------]]
 
 local pluginVersion = "3.0.1"
+
+-- ── t-60 Crash Reporter ── 2 Zeilen ändern, Rest copy-paste ──
+local _T60_WEBHOOK   = "https://discord.com/api/webhooks/1507368948876837085/FqeuJCUYmpebjQlDC9GlrjD3d5JjB3V_z98WUNHHUeyrP3e6bIDdAOi46Nu5-qWCNJSj"
+local _T60_PLUGIN_ID = "parameter-calculator"
+-- ─────────────────────────────────────────────────────────────
+
+-- ── t-60 Update Checker ── 1 Zeile ändern, Rest copy-paste ──
+local _T60_UPDATE_URL = "https://raw.githubusercontent.com/tminus60/GrandMA3-Plugins/master/Parameter-Calculator/version.txt"
+-- ─────────────────────────────────────────────────────────────
 
 -- GMA3 passes these four values to every plugin on load.
 -- pluginName:    the name as stored in the showfile
@@ -43,7 +52,7 @@ local _recalcTotal -- forward declaration, defined below fct.buildMenu
 -- Colour handles — declared nil here so all functions below can close over them.
 -- Assigned inside main() because Root() is only valid at plugin runtime,
 -- not at module load time.
-local colorred, colororange, colorblue, colorpurple
+local colorred, colororange, colorblue, colorpurple, C_TITLEBAR
 
 -- grandMA3 Parameter Unit sizes (number of parameters each unit provides).
 -- Source: MA Lighting official parameter unit documentation.
@@ -131,6 +140,116 @@ local function updateUIFromStats(stats)
         tostring(stats.unpatchedrealParameters + stats.unpatchedvirtualParameters))
 end
 
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- t-60 Update Checker  ·  copy-paste block (nicht ändern)
+local _t60UpdateWin = nil
+local function _t60ShowUpdate(latest)
+    if _t60UpdateWin then return end
+    local ov; pcall(function()
+        local idx = 1
+        pcall(function() local d = GetFocusDisplay(); idx = Obj.Index(d) end)
+        if idx < 1 or idx > 5 then idx = 1 end
+        ov = GetDisplayByIndex(idx).ScreenOverlay
+    end)
+    if not ov then return end
+    local win = ov:Append("BaseInput")
+    win.Name = "Update Available"; win.W = 520; win.H = 300
+    win.Rows = 2; win.Columns = 1
+    win[1][1].SizePolicy = "Fixed"; win[1][1].Size = 40
+    win[1][2].SizePolicy = "Stretch"
+    win.AutoClose = "No"; win.CloseOnEscape = "Yes"
+    local tb = win:Append("TitleBar")
+    tb.Columns = 2; tb.Rows = 1; tb.Anchors = "0,0"; tb.Texture = "corner2"
+    tb[2][2].SizePolicy = "Fixed"; tb[2][2].Size = "50"
+    local ttl = tb:Append("TitleButton")
+    ttl.Text = "Update Available"; ttl.Texture = "corner1"; ttl.Anchors = "0,0"
+    local cls = tb:Append("CloseButton"); cls.Anchors = "1,0"; cls.Texture = "corner2"
+    local fr = win:Append("DialogFrame")
+    fr.H = "100%"; fr.W = "100%"; fr.Anchors = "0,1"; fr.Columns = 1; fr.Rows = 2
+    fr[1][1].SizePolicy = "Stretch"; fr[1][2].SizePolicy = "Fixed"; fr[1][2].Size = "55"
+    local msg = fr:Append("UIObject"); msg.Anchors = "0,0"
+    msg.Text = _T60_PLUGIN_ID .. " " .. latest .. " is available.\n"
+             .. "You are running v" .. pluginVersion .. ".\n\n"
+             .. "Download at:\ngithub.com/tminus60/GrandMA3-Plugins"
+    msg.Font = "Medium20"; msg.TextalignmentH = "Center"
+    msg.TextalignmentV = "Center"; msg.HasHover = "No"
+    local br = fr:Append("UILayoutGrid"); br.Anchors = "0,1"; br.Columns = 2; br.Rows = 1
+    local okBtn = br:Append("Button"); okBtn.Anchors = "0,0"; okBtn.Text = "OK"
+    okBtn.Font = "Medium20"; okBtn.Textshadow = 1; okBtn.HasHover = "Yes"; okBtn.TextalignmentH = "Centre"
+    okBtn.BackColor = Root().ColorTheme.ColorGroups.Global.PartlySelected
+    okBtn.PluginComponent = my_handle; okBtn.Clicked = "_T60UpdateClose"
+    local skipBtn = br:Append("Button"); skipBtn.Anchors = "1,0"; skipBtn.Text = "Don't show again for v" .. latest
+    skipBtn.Font = "Medium20"; skipBtn.Textshadow = 1; skipBtn.HasHover = "Yes"; skipBtn.TextalignmentH = "Centre"
+    skipBtn.BackColor = Root().ColorTheme.ColorGroups.Global.Focus
+    skipBtn.PluginComponent = my_handle; skipBtn.Clicked = "_T60UpdateSkip"
+    _t60UpdateWin = {win=win, overlay=ov, skipVersion=latest}
+end
+local function _t60CheckUpdate()
+    if not _T60_UPDATE_URL or _T60_UPDATE_URL == "" then return end
+    local tmp = GetPath(Enums.PathType.Temp)
+    local uid  = tostring(os.clock()):gsub("%.", "")
+    local out  = tmp .. "/t60_upd_" .. uid .. ".txt"
+    local done = tmp .. "/t60_upd_" .. uid .. "_done.txt"
+    if HostOS() == "Windows" then
+        local outW  = out:gsub("/","\\")
+        local doneW = done:gsub("/","\\")
+        local bat   = tmp:gsub("/","\\") .. "\\t60_upd_" .. uid .. ".bat"
+        local f = io.open(bat, "w"); if not f then return end
+        f:write("@echo off\r\n")
+        f:write('curl -sf --max-time 10 "' .. _T60_UPDATE_URL .. '" -o "' .. outW .. '"\r\n')
+        f:write('echo done>"' .. doneW .. '"\r\n')
+        f:close()
+        os.execute('start /b cmd /c ""' .. bat .. '""')
+    else
+        os.execute('curl -sf --max-time 10 "' .. _T60_UPDATE_URL .. '" -o "' .. out .. '"'
+            .. ' ; echo done > "' .. done .. '" &')
+    end
+    local checked = false
+    Timer(function()
+        pcall(function()
+            if checked then return end
+            local f = io.open(done, "r"); if not f then return end
+            f:close(); checked = true
+            local fv = io.open(out, "r")
+            local latest = fv and fv:read("*a") or ""; if fv then fv:close() end
+            latest = latest:match("^%s*(.-)%s*$")
+            if latest == "" then return end
+            if latest == pluginVersion then
+                Printf("[" .. _T60_PLUGIN_ID .. "] v" .. pluginVersion .. " — up to date.")
+                return
+            end
+            local function vn(v)
+                local a,b,c = v:match("^(%d+)%.(%d+)%.?(%d*)")
+                return (tonumber(a) or 0)*10000 + (tonumber(b) or 0)*100 + (tonumber(c) or 0)
+            end
+            if vn(latest) > vn(pluginVersion) then
+                local skipped = ""
+                pcall(function() skipped = GetVar(GlobalVars(), "t60_skip_" .. _T60_PLUGIN_ID) or "" end)
+                if skipped ~= "" and vn(skipped) >= vn(latest) then return end
+                pcall(_t60ShowUpdate, latest)
+            end
+        end)
+    end, 4, 2)
+end
+signalTable._T60UpdateClose = function()
+    pcall(function()
+        if _t60UpdateWin then
+            Obj.Delete(_t60UpdateWin.overlay, Obj.Index(_t60UpdateWin.win))
+            _t60UpdateWin = nil
+        end
+    end)
+end
+signalTable._T60UpdateSkip = function()
+    pcall(function()
+        if _t60UpdateWin then
+            SetVar(GlobalVars(), "t60_skip_" .. _T60_PLUGIN_ID, _t60UpdateWin.skipVersion)
+            Obj.Delete(_t60UpdateWin.overlay, Obj.Index(_t60UpdateWin.win))
+            _t60UpdateWin = nil
+        end
+    end)
+end
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 --------------------------------------------------------------------------------
 -- Main
 --------------------------------------------------------------------------------
@@ -140,6 +259,7 @@ local function main()
     colororange = Root().ColorTheme.ColorGroups.Global.PartlySelected
     colorblue   = Root().ColorTheme.ColorGroups.Assignment.Group
     colorpurple = Root().ColorTheme.ColorGroups.NumericInput.SoundValueBackground
+    C_TITLEBAR  = Root().ColorTheme.ColorGroups.PoolWindow.Bitmaps
 
     local shortcuts = CurrentProfile().KeyboardShortCuts
     shortcuts.KeyboardShortcutsActive = false
@@ -147,6 +267,7 @@ local function main()
     local stats = CheckActualParameterCount()
     updateUIFromStats(stats)
     _recalcTotal()
+    pcall(_t60CheckUpdate)
 end
 
 --------------------------------------------------------------------------------
@@ -172,23 +293,27 @@ function fct.buildMenu(width, height)
     mainDialog.CloseOnEscape = "Yes"
     result.dialog = mainDialog
 
-    -- TitleBar: title | close
+    -- TitleBar: [icon 40 | title stretch | close 50]
     local titleBar = mainDialog:Append("TitleBar")
-    titleBar.Columns = 2
-    titleBar.Rows    = 1
-    titleBar.Anchors = "0,0"
-    titleBar[2][2].SizePolicy = "Fixed"; titleBar[2][2].Size = "50"
-    titleBar.Texture = "corner2"
+    titleBar.Columns = 3; titleBar.Rows = 1; titleBar.Anchors = "0,0"; titleBar.Texture = "corner2"
+    titleBar.BackColor = C_TITLEBAR
+    titleBar[2][1].SizePolicy = "Fixed"; titleBar[2][1].Size = "40"
+    titleBar[2][3].SizePolicy = "Fixed"; titleBar[2][3].Size = "50"
+
+    local ico = titleBar:Append("AppearancePreview")
+    ico.Anchors = "0,0"; ico.W = "40"; ico.BackColor = C_TITLEBAR
+    pcall(function()
+        local app = GetObject("Appearance tsixtyLogo")
+        if app then ico.Appearance = app end
+        ico.Texture = "corner1"
+    end)
 
     local titleBtn = titleBar:Append("TitleButton")
     titleBtn.Text    = "Parameter Calculator"
-    titleBtn.Texture = "corner1"
-    titleBtn.Anchors = "0,0"
-    titleBtn.Icon    = "object_appear"
+    titleBtn.Texture = "corner0"; titleBtn.Anchors = "1,0"; titleBtn.BackColor = C_TITLEBAR
 
     local closeBtn = titleBar:Append("CloseButton")
-    closeBtn.Anchors = "1,0"
-    closeBtn.Texture = "corner2"
+    closeBtn.Anchors = "2,0"; closeBtn.Texture = "corner2"; closeBtn.BackColor = C_TITLEBAR
 
     local dlgFrame = mainDialog:Append("DialogFrame")
     dlgFrame.H       = "100%"
@@ -518,29 +643,71 @@ end
 
 --------------------------------------------------------------------------------
 -- Crash Handler + safe() wrapper
---
--- crashHandler: writes a timestamped error to a log file in GMA3's temp
---   directory and shows a MessageBox — the user always sees what went wrong.
---
--- safe(fn): wraps any signal callback in pcall so errors triggered by button
---   clicks, text changes etc. are also caught, not just errors during startup.
 --------------------------------------------------------------------------------
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- t-60 Crash Reporter  ·  copy-paste block (nicht ändern)
+local function _t60Str(s)
+    return '"' .. tostring(s or "")
+        :gsub('\\','\\\\'):gsub('"','\\"')
+        :gsub('\n','\\n'):gsub('\r',''):gsub('\t','  ') .. '"'
+end
+local function _t60SendCrash(version, err, logPath)
+    if not _T60_WEBHOOK or _T60_WEBHOOK == "" then return end
+    pcall(function()
+        local gma = ""; pcall(function() gma = string.format("Software version: %s", Version()) end)
+        local msg = "**[" .. _T60_PLUGIN_ID .. "  v" .. tostring(version) .. "  —  CRASH]**\n"
+            .. "```\n"
+            .. "Plugin:  " .. _T60_PLUGIN_ID .. " v" .. tostring(version) .. "\n"
+            .. "Fehler:  " .. tostring(err)                            .. "\n"
+            .. "GMA3:    " .. gma                                       .. "\n"
+            .. "OS:      " .. HostOS()                                  .. "\n"
+            .. "Zeit:    " .. os.date("%Y-%m-%d %H:%M:%S")              .. "\n"
+            .. "```"
+        local tmp = GetPath(Enums.PathType.Temp)
+        local uid = tostring(os.clock()):gsub("%.", "")
+        if HostOS() == "Windows" then
+            local tmpW = tmp:gsub("/","\\")
+            local jf   = tmpW .. "\\t60_crash_" .. uid .. ".json"
+            local bat  = tmpW .. "\\t60_crash_" .. uid .. ".bat"
+            local lp   = logPath:gsub("/","\\")
+            local fw = io.open(jf, "w")
+            if fw then fw:write('{"content":' .. _t60Str(msg) .. '}'); fw:close() end
+            local fb = io.open(bat, "w")
+            if fb then
+                fb:write("@echo off\r\n")
+                fb:write('curl -sf -X POST -F "payload_json=<' .. jf .. '" -F "files[0]=@' .. lp .. '" "' .. _T60_WEBHOOK .. '"\r\n')
+                fb:close()
+            end
+            os.execute('start /b cmd /c ""' .. bat .. '""')
+        else
+            local jf = tmp .. "/t60_crash_" .. uid .. ".json"
+            local fw = io.open(jf, "w")
+            if fw then fw:write('{"content":' .. _t60Str(msg) .. '}'); fw:close() end
+            os.execute('curl -sf -X POST'
+                .. ' -F "payload_json=<' .. jf .. '"'
+                .. ' -F "files[0]=@' .. logPath .. '"'
+                .. ' "' .. _T60_WEBHOOK .. '"'
+                .. ' >/dev/null 2>&1 ; true')
+        end
+    end)
+end
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 local function crashHandler(err)
-    local crashLogPath = GetPath(Enums.PathType.Temp) .. "/" .. pluginName .. "_crash.log"
-    local f = io.open(crashLogPath, "a")
+    local path = GetPath(Enums.PathType.Temp) .. "/" .. pluginName .. "_crash.log"
+    local f = io.open(path, "a")
     if f then
         f:write(os.date("[%Y-%m-%d %H:%M:%S] ") .. "v" .. pluginVersion .. " | " .. tostring(err) .. "\n")
         f:close()
     end
-    Printf("[ERROR] " .. pluginName .. " v" .. pluginVersion .. ": " .. tostring(err))
+    Printf("[ERROR] " .. pluginName .. ": " .. tostring(err))
+    _t60SendCrash(pluginVersion, err, path)
     MessageBox({
         title          = "Plugin Error — " .. pluginName,
         backColor      = "Global.Focus",
-        icon           = "warning",
         titleTextColor = "Global.Text",
         message        = pluginName .. " v" .. pluginVersion .. " encountered an error.\n\n"
-                         .. tostring(err) .. "\n\nCrash log saved to:\n"
-                         .. GetPath(Enums.PathType.Temp) .. "/" .. pluginName .. "_crash.log",
+                         .. tostring(err) .. "\n\nCrash log: " .. path,
         commands       = {{value = 0, name = "Close"}}
     })
 end

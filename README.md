@@ -24,7 +24,15 @@ A collection of free, open-source plugins for **grandMA3** lighting consoles.
 
 Counts real and virtual DMX parameters of all fixtures in the show. Calculates how many Parameter Units (PU M/L/XL) you need to cover the show.
 
-<img src="Parameter-Calculator/screenshots/overview.png" width="600">
+<table>
+  <tr>
+    <img src="Parameter-Calculator/screenshots/overview.png" width="280">
+  </tr>
+  <tr>
+    <td align="center">Calculator</td>
+  </tr>
+</table>
+
 
 ---
 
