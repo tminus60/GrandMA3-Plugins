@@ -28,7 +28,7 @@ local _T60_PLUGIN_ID = "network-tools"
 -- ─────────────────────────────────────────────────────────────
 
 -- ── t-60 Update Checker ── 1 Zeile ändern, Rest copy-paste ──
-local _T60_UPDATE_URL = "https://raw.githubusercontent.com/tminus60/GrandMA3-Plugins/main/Network-Tools/version.txt"
+local _T60_UPDATE_URL = "https://raw.githubusercontent.com/tminus60/GrandMA3-Plugins/master/Network-Tools/version.txt"
 -- ─────────────────────────────────────────────────────────────
 
 local pluginName  = select(1, ...)
@@ -118,11 +118,10 @@ end
 --------------------------------------------------------------------------------
 -- Guard background state
 --------------------------------------------------------------------------------
-local guardRunning      = false
-local guardTimer        = nil
-local guardPingResults  = {}
-local guardPendingAlert = nil
-local guardAlertWin     = nil
+local guardRunning     = false
+local guardTimer       = nil
+local guardPingResults = {}
+local guardAlertWin    = nil
 local guardIPs      = {}
 local guardStatus   = {}
 local guardNames    = {}
@@ -203,14 +202,14 @@ local function startPing(host, count)
     local out  = d .. "/out.txt"
     local done = d .. "/done.txt"
     if HostOS() == "Windows" then
-        local f = io.open(d .. "/run.bat", "w")
+        local f = io.open(d .. "/run.bat", "w"); if not f then return out, done, d end
         f:write("@echo off\r\n")
         f:write('ping -n ' .. count .. ' ' .. host .. ' > "' .. out .. '" 2>&1\r\n')
         f:write('echo done > "' .. done .. '"\r\n')
         f:close()
         os.execute('start /b cmd /c "' .. d .. '\\run.bat"')
     else
-        local f = io.open(d .. "/run.sh", "w")
+        local f = io.open(d .. "/run.sh", "w"); if not f then return out, done, d end
         f:write("#!/bin/bash\n")
         f:write('ping -c ' .. count .. ' ' .. host .. ' > "' .. out .. '" 2>&1\n')
         f:write('echo done > "' .. done .. '"\n')
@@ -225,7 +224,7 @@ local function startPingAllAsync(ips, count)
     local d = makeTmpDir("nt_pingall_")
     local doneFile = d .. "/all_done.txt"
     if HostOS() == "Windows" then
-        local f = io.open(d .. "/pingall.bat", "w")
+        local f = io.open(d .. "/pingall.bat", "w"); if not f then return d, doneFile end
         f:write("@echo off\r\nsetlocal enabledelayedexpansion\r\n")
         for i, ip in ipairs(ips) do
             local out = (d .. "/ip" .. i .. ".txt"):gsub("/", "\\")
@@ -237,7 +236,7 @@ local function startPingAllAsync(ips, count)
         f:close()
         os.execute('start /b cmd /c "' .. d:gsub("/", "\\") .. '\\pingall.bat"')
     else
-        local f = io.open(d .. "/pingall.sh", "w")
+        local f = io.open(d .. "/pingall.sh", "w"); if not f then return d, doneFile end
         f:write("#!/bin/bash\n")
         for i, ip in ipairs(ips) do
             f:write(string.format('ping -c %d -W 1 %s > "%s/ip%d.txt" 2>&1 &\n', count, ip, d, i))
@@ -253,7 +252,7 @@ local function runSweepSync(base, s, e)
     local d   = makeTmpDir("nt_sweep_")
     local res = d .. "/results.txt"
     if HostOS() == "Windows" then
-        local f = io.open(d .. "/sweep.bat", "w")
+        local f = io.open(d .. "/sweep.bat", "w"); if not f then return res, d end
         local resW = res:gsub("/", "\\")
         f:write("@echo off\r\nsetlocal enabledelayedexpansion\r\n")
         f:write('set "RES=' .. resW .. '"\r\n')
@@ -266,7 +265,7 @@ local function runSweepSync(base, s, e)
         f:close()
         os.execute('cmd /c "' .. d:gsub("/", "\\") .. '\\sweep.bat"')
     else
-        local f = io.open(d .. "/sweep.sh", "w")
+        local f = io.open(d .. "/sweep.sh", "w"); if not f then return res, d end
         f:write("#!/bin/bash\n")
         for i = s, e do
             f:write(string.format(
@@ -313,45 +312,33 @@ end
 local function _t60SendCrash(version, err, logPath)
     if not _T60_WEBHOOK or _T60_WEBHOOK == "" then return end
     pcall(function()
-        local gma  = ""; pcall(function() gma  = tostring(Root().SoftwareVersion) end)
-        local show = ""; pcall(function() show = tostring(Root().ShowData.Name)    end)
-        local msg = "**[" .. _T60_PLUGIN_ID .. "  v" .. tostring(version) .. "  —  CRASH]**\\n"
-            .. "```\\n"
-            .. "Plugin:  " .. _T60_PLUGIN_ID .. " v" .. tostring(version) .. "\\n"
-            .. "Fehler:  " .. tostring(err)                            .. "\\n"
-            .. "GMA3:    " .. gma                                       .. "\\n"
-            .. "Show:    " .. show                                      .. "\\n"
-            .. "OS:      " .. HostOS()                                  .. "\\n"
-            .. "Zeit:    " .. os.date("%Y-%m-%d %H:%M:%S")              .. "\\n"
+        local gma = ""; pcall(function() gma = string.format("Software version: %s", Version()) end)
+        local msg = "**[" .. _T60_PLUGIN_ID .. "  v" .. tostring(version) .. "  —  CRASH]**\n"
+            .. "```\n"
+            .. "Plugin:  " .. _T60_PLUGIN_ID .. " v" .. tostring(version) .. "\n"
+            .. "Fehler:  " .. tostring(err)                            .. "\n"
+            .. "GMA3:    " .. gma                                       .. "\n"
+            .. "OS:      " .. HostOS()                                  .. "\n"
+            .. "Zeit:    " .. os.date("%Y-%m-%d %H:%M:%S")              .. "\n"
             .. "```"
         local tmp = GetPath(Enums.PathType.Temp)
+        local uid = tostring(os.clock()):gsub("%.", "")
         if HostOS() == "Windows" then
-            -- PowerShell: sendet Nachricht + Log-Datei als Anhang in einer Discord-Message
-            local lp  = logPath:gsub("/","\\"):gsub("'","''")
-            local wh  = _T60_WEBHOOK:gsub("'","''")
-            local ps1 = tmp .. "\\t60_crash.ps1"
-            local fw  = io.open(ps1, "w")
-            if fw then
-                fw:write("try {\n")
-                fw:write("  $c=[Net.Http.HttpClient]::new()\n")
-                fw:write("  $f=[Net.Http.MultipartFormDataContent]::new()\n")
-                fw:write("  $pj=[Net.Http.StringContent]::new('{\"content\":" .. _t60Str(msg) .. "}','UTF-8','application/json')\n")
-                fw:write("  $f.Add($pj,'payload_json')\n")
-                fw:write("  if(Test-Path '" .. lp .. "'){\n")
-                fw:write("    $b=[IO.File]::ReadAllBytes('" .. lp .. "')\n")
-                fw:write("    $fc=[Net.Http.ByteArrayContent]::new($b)\n")
-                fw:write("    $fc.Headers.ContentType=[Net.Http.Headers.MediaTypeHeaderValue]::new('text/plain')\n")
-                fw:write("    $f.Add($fc,'files[0]','crash.log')\n")
-                fw:write("  }\n")
-                fw:write("  $c.PostAsync('" .. wh .. "',$f).Wait()\n")
-                fw:write("} catch {}\n")
-                fw:close()
+            local tmpW = tmp:gsub("/","\\")
+            local jf   = tmpW .. "\\t60_crash_" .. uid .. ".json"
+            local bat  = tmpW .. "\\t60_crash_" .. uid .. ".bat"
+            local lp   = logPath:gsub("/","\\")
+            local fw = io.open(jf, "w")
+            if fw then fw:write('{"content":' .. _t60Str(msg) .. '}'); fw:close() end
+            local fb = io.open(bat, "w")
+            if fb then
+                fb:write("@echo off\r\n")
+                fb:write('curl -sf -X POST -F "payload_json=<' .. jf .. '" -F "files[0]=@' .. lp .. '" "' .. _T60_WEBHOOK .. '"\r\n')
+                fb:close()
             end
-            os.execute('start /b powershell -NonInteractive -WindowStyle Hidden'
-                .. ' -File "' .. ps1:gsub("/","\\") .. '" || ver >nul')
+            os.execute('start /b cmd /c ""' .. bat .. '""')
         else
-            -- Linux/GMA3-Pult: curl mit Dateianhang
-            local jf = tmp .. "/t60_crash_payload.json"
+            local jf = tmp .. "/t60_crash_" .. uid .. ".json"
             local fw = io.open(jf, "w")
             if fw then fw:write('{"content":' .. _t60Str(msg) .. '}'); fw:close() end
             os.execute('curl -sf -X POST'
@@ -375,7 +362,7 @@ local function crashHandler(err)
     _t60SendCrash(pluginVersion, err, path)
     MessageBox({
         title = "Plugin Error — " .. pluginName, backColor = "Global.Focus",
-        icon = "warning", titleTextColor = "Global.Text",
+        titleTextColor = "Global.Text",
         message = pluginName .. " v" .. pluginVersion .. " encountered an error.\n\n"
             .. tostring(err) .. "\n\nCrash log: " .. path,
         commands = {{value = 0, name = "Close"}},
@@ -419,10 +406,8 @@ local function makeWin(name, w, h, noClose)
     win[1][1].SizePolicy = "Fixed"; win[1][1].Size = 40
     win[1][2].SizePolicy = "Stretch"
     win.AutoClose = "No"; win.CloseOnEscape = "Yes"
-    pcall(function()
-        win.MaxSize = string.format("%s,%s", display.W, display.H)
-    end)
-    win.BackColor = C_TITLEBAR
+
+    pcall(function() win.MaxSize = string.format("%s,%s", display.W, display.H) end)
 
     local tb = win:Append("TitleBar")
     tb.Columns = 5; tb.Rows = 1; tb.Anchors = "0,0"; tb.Texture = "corner2"
@@ -435,7 +420,7 @@ local function makeWin(name, w, h, noClose)
     local ico = tb:Append("AppearancePreview")
     ico.Anchors = "0,0"; ico.W = "40"; ico.BackColor = C_TITLEBAR
     pcall(function()
-        local app = GetObject("Appearance NetworkToolsLogo")
+        local app = GetObject("Appearance tsixtyLogo")
         if app then ico.Appearance = app end
         ico.Texture = "corner1"
     end)
@@ -548,6 +533,117 @@ local function makeScrollTable(parent, anchor, numCols, colDefs, maxRows)
     return grid, rowHeights
 end
 
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- t-60 Update Checker  ·  copy-paste block (nicht ändern)
+local _t60UpdateWin = nil
+local function _t60ShowUpdate(latest)
+    if _t60UpdateWin then return end
+    local ov; pcall(function()
+        local idx = 1
+        pcall(function() local d = GetFocusDisplay(); idx = Obj.Index(d) end)
+        if idx < 1 or idx > 5 then idx = 1 end
+        ov = GetDisplayByIndex(idx).ScreenOverlay
+    end)
+    if not ov then return end
+    local win = ov:Append("BaseInput")
+    win.Name = "Update Available"; win.W = 520; win.H = 300
+    win.Rows = 2; win.Columns = 1
+    win[1][1].SizePolicy = "Fixed"; win[1][1].Size = 40
+    win[1][2].SizePolicy = "Stretch"
+    win.AutoClose = "No"; win.CloseOnEscape = "Yes"
+    local tb = win:Append("TitleBar")
+    tb.Columns = 2; tb.Rows = 1; tb.Anchors = "0,0"; tb.Texture = "corner2"
+    tb[2][2].SizePolicy = "Fixed"; tb[2][2].Size = "50"
+    local ttl = tb:Append("TitleButton")
+    ttl.Text = "Update Available"; ttl.Texture = "corner1"; ttl.Anchors = "0,0"
+    local cls = tb:Append("CloseButton"); cls.Anchors = "1,0"; cls.Texture = "corner2"
+    local fr = win:Append("DialogFrame")
+    fr.H = "100%"; fr.W = "100%"; fr.Anchors = "0,1"; fr.Columns = 1; fr.Rows = 2
+    fr[1][1].SizePolicy = "Stretch"
+    fr[1][2].SizePolicy = "Fixed"; fr[1][2].Size = "55"
+    local msg = fr:Append("UIObject"); msg.Anchors = "0,0"
+    msg.Text = _T60_PLUGIN_ID .. " " .. latest .. " is available.\n"
+             .. "You are running v" .. pluginVersion .. ".\n\n"
+             .. "Download at:\ngithub.com/tminus60/GrandMA3-Plugins"
+    msg.Font = "Medium20"; msg.TextalignmentH = "Center"
+    msg.TextalignmentV = "Center"; msg.HasHover = "No"
+    local br = fr:Append("UILayoutGrid"); br.Anchors = "0,1"; br.Columns = 2; br.Rows = 1
+    local okBtn = br:Append("Button"); okBtn.Anchors = "0,0"; okBtn.Text = "OK"
+    okBtn.Font = "Medium20"; okBtn.Textshadow = 1; okBtn.HasHover = "Yes"; okBtn.TextalignmentH = "Centre"
+    okBtn.BackColor = Root().ColorTheme.ColorGroups.Global.PartlySelected
+    okBtn.PluginComponent = my_handle; okBtn.Clicked = "_T60UpdateClose"
+    local skipBtn = br:Append("Button"); skipBtn.Anchors = "1,0"; skipBtn.Text = "Don't show again for v" .. latest
+    skipBtn.Font = "Medium20"; skipBtn.Textshadow = 1; skipBtn.HasHover = "Yes"; skipBtn.TextalignmentH = "Centre"
+    skipBtn.BackColor = Root().ColorTheme.ColorGroups.Global.Focus
+    skipBtn.PluginComponent = my_handle; skipBtn.Clicked = "_T60UpdateSkip"
+    _t60UpdateWin = {win=win, overlay=ov, skipVersion=latest}
+end
+local function _t60CheckUpdate()
+    if not _T60_UPDATE_URL or _T60_UPDATE_URL == "" then return end
+    local tmp = GetPath(Enums.PathType.Temp)
+    local uid  = tostring(os.clock()):gsub("%.", "")
+    local out  = tmp .. "/t60_upd_" .. uid .. ".txt"
+    local done = tmp .. "/t60_upd_" .. uid .. "_done.txt"
+    if HostOS() == "Windows" then
+        local outW  = out:gsub("/","\\")
+        local doneW = done:gsub("/","\\")
+        local bat   = tmp:gsub("/","\\") .. "\\t60_upd_" .. uid .. ".bat"
+        local f = io.open(bat, "w"); if not f then return end
+        f:write("@echo off\r\n")
+        f:write('curl -sf --max-time 10 "' .. _T60_UPDATE_URL .. '" -o "' .. outW .. '"\r\n')
+        f:write('echo done>"' .. doneW .. '"\r\n')
+        f:close()
+        os.execute('start /b cmd /c ""' .. bat .. '""')
+    else
+        os.execute('curl -sf --max-time 10 "' .. _T60_UPDATE_URL .. '" -o "' .. out .. '"'
+            .. ' ; echo done > "' .. done .. '" &')
+    end
+    local checked = false
+    Timer(function()
+        pcall(function()
+            if checked then return end
+            local f = io.open(done, "r"); if not f then return end
+            f:close(); checked = true
+            local fv = io.open(out, "r")
+            local latest = fv and fv:read("*a") or ""; if fv then fv:close() end
+            latest = latest:match("^%s*(.-)%s*$")
+            if latest == "" then return end
+            if latest == pluginVersion then
+                Printf("[" .. _T60_PLUGIN_ID .. "] v" .. pluginVersion .. " — up to date.")
+                return
+            end
+            local function vn(v)
+                local a,b,c = v:match("^(%d+)%.(%d+)%.?(%d*)")
+                return (tonumber(a) or 0)*10000 + (tonumber(b) or 0)*100 + (tonumber(c) or 0)
+            end
+            if vn(latest) > vn(pluginVersion) then
+                local skipped = ""
+                pcall(function() skipped = GetVar(GlobalVars(), "t60_skip_" .. _T60_PLUGIN_ID) or "" end)
+                if skipped ~= "" and vn(skipped) >= vn(latest) then return end
+                pcall(_t60ShowUpdate, latest)
+            end
+        end)
+    end, 4, 2)
+end
+signalTable._T60UpdateClose = function()
+    pcall(function()
+        if _t60UpdateWin then
+            Obj.Delete(_t60UpdateWin.overlay, Obj.Index(_t60UpdateWin.win))
+            _t60UpdateWin = nil
+        end
+    end)
+end
+signalTable._T60UpdateSkip = function()
+    pcall(function()
+        if _t60UpdateWin then
+            SetVar(GlobalVars(), "t60_skip_" .. _T60_PLUGIN_ID, _t60UpdateWin.skipVersion)
+            Obj.Delete(_t60UpdateWin.overlay, Obj.Index(_t60UpdateWin.win))
+            _t60UpdateWin = nil
+        end
+    end)
+end
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 --------------------------------------------------------------------------------
 -- Main entry
 --------------------------------------------------------------------------------
@@ -588,7 +684,6 @@ function fct.buildLauncher()
     fr.H = "100%"; fr.W = "100%"; fr.Anchors = "0,1"
     fr.Columns = 1; fr.Rows = 1
     fr[1][1].SizePolicy = "Stretch"
-    
 
     local grid = fr:Append("UILayoutGrid")
     grid.Anchors = "0,0"; grid.Columns = 1; grid.Rows = 8
@@ -1090,7 +1185,7 @@ end
 
 local function showGuardAlert(msg)
     if guardAlertWin then
-            pcall(function()
+        pcall(function()
             if guardAlertWin.msgLbl then
                 guardAlertWin.msgLbl.Text = guardAlertWin.msgLbl.Text .. "\n" .. msg
             end
@@ -1137,102 +1232,6 @@ local function showGuardAlert(msg)
     guardAlertWin = {win=win, overlay=overlay, msgLbl=msgLbl}
 end
 
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- t-60 Update Checker  ·  copy-paste block (nicht ändern)
-local _t60UpdateWin = nil
-local function _t60ShowUpdate(latest)
-    if _t60UpdateWin then return end
-    local ov; pcall(function()
-        local idx = 1
-        pcall(function() local d = GetFocusDisplay(); idx = Obj.Index(d) end)
-        if idx < 1 or idx > 5 then idx = 1 end
-        ov = GetDisplayByIndex(idx).ScreenOverlay
-    end)
-    if not ov then return end
-    local win = ov:Append("BaseInput")
-    win.Name = "Update Available"; win.W = 440; win.H = 190
-    win.Rows = 2; win.Columns = 1
-    win[1][1].SizePolicy = "Fixed"; win[1][1].Size = 40
-    win[1][2].SizePolicy = "Stretch"
-    win.AutoClose = "No"; win.CloseOnEscape = "Yes"
-    local tb = win:Append("TitleBar")
-    tb.Columns = 2; tb.Rows = 1; tb.Anchors = "0,0"; tb.Texture = "corner2"
-    tb[2][2].SizePolicy = "Fixed"; tb[2][2].Size = "50"
-    local ttl = tb:Append("TitleButton")
-    ttl.Text = "Update Available"; ttl.Texture = "corner1"; ttl.Anchors = "0,0"; ttl.Icon = "download"
-    local cls = tb:Append("CloseButton"); cls.Anchors = "1,0"; cls.Texture = "corner2"
-    local fr = win:Append("DialogFrame")
-    fr.H = "100%"; fr.W = "100%"; fr.Anchors = "0,1"; fr.Columns = 1; fr.Rows = 2
-    fr[1][1].SizePolicy = "Stretch"; fr[1][2].SizePolicy = "Fixed"; fr[1][2].Size = "55"
-    local msg = fr:Append("UIObject"); msg.Anchors = "0,0"
-    msg.Text = _T60_PLUGIN_ID .. " " .. latest .. " is available.\n"
-             .. "You are running v" .. pluginVersion .. ".\n\n"
-             .. "github.com/tminus60/GrandMA3-Plugins"
-    msg.Font = "Medium20"; msg.TextalignmentH = "Center"
-    msg.TextalignmentV = "Center"; msg.HasHover = "No"
-    local br = fr:Append("UILayoutGrid"); br.Anchors = "0,1"; br.Columns = 1; br.Rows = 1
-    local btn = br:Append("Button"); btn.Anchors = "0,0"; btn.Text = "OK"
-    btn.Font = "Medium20"; btn.Textshadow = 1; btn.HasHover = "Yes"; btn.TextalignmentH = "Centre"
-    btn.BackColor = Root().ColorTheme.ColorGroups.Global.PartlySelected
-    btn.PluginComponent = my_handle; btn.Clicked = "_T60UpdateClose"
-    _t60UpdateWin = {win=win, overlay=ov}
-end
-local function _t60CheckUpdate()
-    if not _T60_UPDATE_URL or _T60_UPDATE_URL == "" then return end
-    local tmp = GetPath(Enums.PathType.Temp)
-    local out  = tmp .. "/t60_update.txt"
-    local done = tmp .. "/t60_update_done.txt"
-    pcall(function()
-        if HostOS() == "Windows" then
-            os.execute('del "' .. out:gsub("/","\\") .. '" "' .. done:gsub("/","\\") .. '" 2>nul || ver>nul')
-        else os.execute('rm -f "' .. out .. '" "' .. done .. '" ; true') end
-    end)
-    if HostOS() == "Windows" then
-        local bat = tmp .. "\\t60_update.bat"
-        local f = io.open(bat, "w"); if not f then return end
-        f:write("@echo off\r\n")
-        f:write('powershell -NonInteractive -WindowStyle Hidden -Command '
-            .. '"try{(New-Object Net.WebClient).DownloadFile(\''
-            .. _T60_UPDATE_URL .. '\',\'' .. out:gsub("/","\\"):gsub("'","''") .. '\')}catch{}"\r\n')
-        f:write('echo done > "' .. done:gsub("/","\\") .. '"\r\n')
-        f:close()
-        os.execute('start /b cmd /c "' .. bat .. '"')
-    else
-        os.execute('curl -sf --max-time 5 "' .. _T60_UPDATE_URL .. '" -o "' .. out .. '"'
-            .. ' ; echo done > "' .. done .. '" &')
-    end
-    local checked = false
-    Timer(function()
-        pcall(function()
-            if checked then return end
-            local f = io.open(done, "r"); if not f then return end
-            f:close(); checked = true
-            local fv = io.open(out, "r")
-            local latest = fv and fv:read("*a") or ""; if fv then fv:close() end
-            latest = latest:match("^%s*(.-)%s*$")
-            if latest == "" then return end
-            if latest == pluginVersion then
-                Printf("[" .. _T60_PLUGIN_ID .. "] v" .. pluginVersion .. " — up to date.")
-                return
-            end
-            local function vn(v)
-                local a,b,c = v:match("^(%d+)%.(%d+)%.?(%d*)")
-                return (tonumber(a) or 0)*10000 + (tonumber(b) or 0)*100 + (tonumber(c) or 0)
-            end
-            if vn(latest) > vn(pluginVersion) then pcall(_t60ShowUpdate, latest) end
-        end)
-    end, 4, 2)
-end
-signalTable._T60UpdateClose = function()
-    pcall(function()
-        if _t60UpdateWin then
-            Obj.Delete(_t60UpdateWin.overlay, Obj.Index(_t60UpdateWin.win))
-            _t60UpdateWin = nil
-        end
-    end)
-end
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 local function guardPoll()
     if #guardPingResults == 0 then return end
     local remaining, alerts = {}, {}
@@ -1260,7 +1259,6 @@ local function guardPoll()
     guardPingResults = remaining
     if #alerts > 0 then
         local alertMsg = table.concat(alerts, "\n")
-        guardPendingAlert = alertMsg
         pcall(function()
             if guardWin and guardWin.guardStLbl then
                 guardWin.guardStLbl.Text = alerts[1]
@@ -1322,7 +1320,6 @@ end
 
 signalTable.Lnch_Guard = safe(function()
     openTool(fct.buildGuardWin)
-    guardPendingAlert = nil
 end)
 
 -- Validation

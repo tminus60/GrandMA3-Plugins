@@ -13,7 +13,7 @@ A collection of free, open-source plugins for **grandMA3** lighting consoles.
 | Category | Plugin | Version |
 |---|---|---|
 | Parameter | [Parameter Calculator](Parameter-Calculator/) | `v3.0.1` |
-| Network | [Network Ping](Network/Ping/) | `v2.2.0` |
+| Network | [Network Tools](Network-Tools/) | `v3.1.1` |
 | Games | [Pong](Pong/) | `v1.3.0` |
 
 ---
@@ -30,27 +30,37 @@ Counts real and virtual DMX parameters of all fixtures in the show. Calculates h
 
 ## Network
 
-### [Network Tools](Network/Ping/) `v3.0.0`
+### [Network Tools](Network-Tools/) `v3.1.1`
 
-A suite of network diagnostic tools for grandMA3.
+A suite of network diagnostic tools for grandMA3. All operations run asynchronously — the UI thread is never blocked.
 
 | Tool | Description |
 |---|---|
-| **Single Ping** | Ping any host or IP address |
-| **Ping Sweep** | Scan a full IP range in parallel — a /24 in ~3 seconds |
-| **Favorites** | Save hosts for quick one-click pinging, stored per user |
-| **Ping Guard** | Continuously monitor a list of IPs, alert when a host goes down |
+| **Single Ping** | Ping any host or IP address, see full output |
+| **Ping Sweep** | Scan a full /24 range in parallel, add results directly to Favorites |
+| **Favorites** | Save hosts by name, quick one-click ping, stored per user |
+| **Ping Guard** | Continuously monitor a list of IPs in the background, popup alert when a host goes down or comes back up |
 
 <table>
   <tr>
-    <td><img src="Network/Ping/screenshots/launcher.png" width="280"></td>
-    <td><img src="Network/Ping/screenshots/single-ping.png" width="280"></td>
-    <td><img src="Network/Ping/screenshots/sweep.png" width="280"></td>
+    <td><img src="Network-Tools/screenshots/launcher.png" width="280"></td>
+    <td><img src="Network-Tools/screenshots/single-ping.png" width="280"></td>
+    <td><img src="Network-Tools/screenshots/sweep.png" width="280"></td>
   </tr>
   <tr>
     <td align="center">Launcher</td>
     <td align="center">Single Ping</td>
     <td align="center">Ping Sweep</td>
+  </tr>
+  <tr>
+    <td><img src="Network-Tools/screenshots/favorites.png" width="280"></td>
+    <td><img src="Network-Tools/screenshots/guard.png" width="280"></td>
+    <td><img src="Network-Tools/screenshots/guard-alert.png" width="280"></td>
+  </tr>
+  <tr>
+    <td align="center">Favorites</td>
+    <td align="center">Ping Guard</td>
+    <td align="center">Guard Alert</td>
   </tr>
 </table>
 
